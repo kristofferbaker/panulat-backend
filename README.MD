@@ -6,3 +6,9 @@
 5. Create a superuser: python manage.py createsuperuser
 6. Run: python manage.py runserver
 7. Login into Django Admin (http://127.0.0.1:8000/admin/) with superuser credentials
+
+# Record model changes
+python manage.py makemigrations <APP_NAME>
+
+# Implement model changes
+python manage.py migrate
