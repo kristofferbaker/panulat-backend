@@ -1,4 +1,15 @@
-from django.urls import path
-from .views import TestAPI
+from django.urls import path, include
+from .views import GlobalExploreAPI
 
-urlpatterns = [path("blogs/create/", TestAPI.as_view())]
+
+explore_urlpatterns = [
+    path(
+        "global/",
+        GlobalExploreAPI.as_view(),
+        name="global-explore",
+    ),
+]
+
+urlpatterns = [
+    path("explore/", include((explore_urlpatterns, "explore"))),
+]
