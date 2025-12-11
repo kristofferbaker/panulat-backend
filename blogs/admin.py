@@ -16,6 +16,7 @@ class BlogAdmin(admin.ModelAdmin):
 class SubscriptionAdmin(admin.ModelAdmin):
     list_display = (
         "email",
+        "subscriber",
         "blog",
         "created_at",
         "is_active",

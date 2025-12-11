@@ -3,6 +3,7 @@ from django.conf import settings
 from django.utils import timezone
 from django.db.models.signals import post_save
 from django.dispatch import receiver
+import django
 
 from accounts.models import CustomUser
 
@@ -15,6 +16,7 @@ class Blog(models.Model):
     blog_name = models.CharField(max_length=255, null=True)
     blog_banner = models.ImageField(blank=True, null=True)
     blog_logo = models.ImageField(blank=True, null=True)
+    created_at = models.DateTimeField(default=django.utils.timezone.now)
 
     @receiver(post_save, sender=CustomUser)
     def create_or_update_blog(sender, instance, created, **kwargs):
@@ -24,9 +26,12 @@ class Blog(models.Model):
 class Subscription(models.Model):
     email = models.CharField(
         max_length=255
-    )  # email can only be subscribed once to a blog
+    )  # Use if reader is NOT logged in. Email can only be subscribed once to a blog
+    subscriber = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, null=True
+    )  # Use if reader IS logged in.
     blog = models.ForeignKey(Blog, on_delete=models.CASCADE)
-    created_at = models.DateTimeField(default=timezone.now())
+    created_at = models.DateTimeField(default=django.utils.timezone.now)
     is_active = models.BooleanField(default=False)
 
 
@@ -36,7 +41,7 @@ class BlogPost(models.Model):
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
     )
-    created_at = models.DateTimeField(default=timezone.now())
+    created_at = models.DateTimeField(default=django.utils.timezone.now)
     opening_graphic = models.ImageField(blank=True, null=True)
     title = models.CharField(max_length=255)
     subtitle = models.CharField(max_length=255, blank=True, null=True)
@@ -47,13 +52,13 @@ class BlogPost(models.Model):
 class Comment(models.Model):
     blog_post = models.ForeignKey(BlogPost, on_delete=models.CASCADE)
     commenter = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
-    created_at = models.DateTimeField(default=timezone.now())
+    created_at = models.DateTimeField(default=django.utils.timezone.now)
 
 
 class Like(models.Model):  # One like is alloted per user for a single post.
     blog_post = models.ForeignKey(BlogPost, on_delete=models.CASCADE)
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
-    created_at = models.DateTimeField(default=timezone.now())
+    created_at = models.DateTimeField(default=django.utils.timezone.now)
 
 
 class View(models.Model):  # Needs to be unique. One view to an IP address or user.
@@ -62,6 +67,7 @@ class View(models.Model):  # Needs to be unique. One view to an IP address or us
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL, on_delete=models.CASCADE, blank=True, null=True
     )
+    created_at = models.DateTimeField(default=django.utils.timezone.now)
 
 
 class Quote(models.Model):
