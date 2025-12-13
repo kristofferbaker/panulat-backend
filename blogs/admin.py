@@ -33,7 +33,8 @@ class BlogPostAdmin(admin.ModelAdmin):
         "title",
         "subtitle",
         "body",
-        "lockedToSubscribers",
+        "locked_to_subscribers",
+        "post_type",
     )
 
 

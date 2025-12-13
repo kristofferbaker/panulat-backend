@@ -174,3 +174,6 @@ SPECTACULAR_SETTINGS = {
     "VERSION": "1.0.0",
     # OTHER SETTINGS
 }
+
+MEDIA_URL = "/media/"
+MEDIA_ROOT = BASE_DIR / "media"

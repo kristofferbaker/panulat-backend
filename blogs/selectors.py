@@ -34,7 +34,7 @@ def get_latest_blog_posts_of_subscribed_to_blogs(user):
 
 def get_stats(data, user):
     blog = Blog.objects.filter(pk=data["blog_pk"], blog_author=user).first()
-    time_period_filter = data.get("time_period_filter", None)
+    time_period_filter = data.get("time_period_filter")
 
     # Today filter arguments
     if time_period_filter == "T":
@@ -112,3 +112,10 @@ def get_stats(data, user):
         ).count()
 
     return {"total_views": total_views, "total_subscribers": total_subscribers}
+
+
+def get_blog_posts_account_mode(data, user):
+    post_type = data.get("post_type")
+    blog_posts = BlogPost.objects.filter(author=user, post_type=post_type)
+
+    return blog_posts

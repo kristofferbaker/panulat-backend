@@ -36,23 +36,32 @@ class Subscription(models.Model):
 
 
 class BlogPost(models.Model):
+    class PostType(models.TextChoices):
+        PUBLISHED = "PU"
+        SCHEDULED = "SCH"
+        DRAFTS = "DR"
+        DELETED = "DE"
+
     blog = models.ForeignKey(Blog, on_delete=models.CASCADE)
     author = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
     )
     created_at = models.DateTimeField(default=django.utils.timezone.now)
-    opening_graphic = models.ImageField(blank=True, null=True)
+    opening_graphic = models.ImageField(null=True, upload_to="images/")
     title = models.CharField(max_length=255)
     subtitle = models.CharField(max_length=255, blank=True, null=True)
-    body = models.TextField()
-    lockedToSubscribers = models.BooleanField(default=False)
+    body = models.TextField(blank=True, null=True)
+    locked_to_subscribers = models.BooleanField(default=False)
+    post_type = models.CharField(choices=PostType, max_length=255, default="DR")
+    is_deleted = models.BooleanField(default=False)
 
 
 class Comment(models.Model):
     blog_post = models.ForeignKey(BlogPost, on_delete=models.CASCADE)
     commenter = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     created_at = models.DateTimeField(default=django.utils.timezone.now)
+    body = models.TextField()
 
 
 class Like(models.Model):  # One like is alloted per user for a single post.

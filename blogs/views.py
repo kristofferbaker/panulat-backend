@@ -86,3 +86,48 @@ class StatsOverviewAPI(APIView):
         )
 
         return Response(stats, status=status.HTTP_200_OK)
+
+
+class CreateBlogPostAPI(APIView):
+    permission_classes = (IsAuthenticated,)
+    input_serializer_class = serializers.CreateBlogPostInputSerializer
+    output_serializer_class = serializers.CreateBlogPostOutputSerializer
+
+    @extend_schema(
+        request=serializers.CreateBlogPostInputSerializer,
+        responses=serializers.CreateBlogPostOutputSerializer,
+    )
+    def post(self, request):
+        input_serializer = self.input_serializer_class(data=request.data)
+        input_serializer.is_valid(raise_exception=True)
+
+        data = input_serializer.validated_data
+
+        blog_post = services.create_blog_post(data, user=request.user)
+
+        output = self.output_serializer_class(blog_post).data
+
+        return Response(output, status=status.HTTP_200_OK)
+
+
+class ListBlogPostsAccountModeAPI(APIView):
+    permission_classes = (IsAuthenticated,)
+    filter_serializer_class = serializers.ListBlogPostsAccountModeFilterSerializer
+    serializer_class = serializers.ListBlogPostsAccountModeOutputSerializer
+    pagination_class = pagination.PageNumberPagination
+
+    def get(self, request):
+        filter_serializer = self.filter_serializer_class(data=request.query_params)
+        filter_serializer.is_valid(raise_exception=True)
+
+        blog_posts = selectors.get_blog_posts_account_mode(
+            data=filter_serializer.validated_data, user=request.user
+        )
+
+        # Paginate records.
+        paginator = self.pagination_class()
+        paginated_results = paginator.paginate_queryset(blog_posts, request)
+        serializer = self.serializer_class(paginated_results, many=True)
+        response = paginator.get_paginated_response(serializer.data)
+
+        return Response(response.data, status=status.HTTP_200_OK)
