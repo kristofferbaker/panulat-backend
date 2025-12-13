@@ -9,10 +9,6 @@ from . import models, serializers, services, selectors, pagination, permissions
 from rest_framework import serializers as rest_serializers
 
 
-class TestAPI(APIView):
-    pass
-
-
 # API for searching blogs by their name.
 class GlobalExploreAPI(APIView):
     filter_serializer_class = serializers.GlobalExploreFilterSerializer
@@ -116,6 +112,12 @@ class ListBlogPostsAccountModeAPI(APIView):
     serializer_class = serializers.ListBlogPostsAccountModeOutputSerializer
     pagination_class = pagination.PageNumberPagination
 
+    @extend_schema(
+        parameters=[
+            OpenApiParameter("post_type", OpenApiTypes.STR),
+        ],
+        responses=serializers.ListBlogPostsAccountModeOutputSerializer,
+    )
     def get(self, request):
         filter_serializer = self.filter_serializer_class(data=request.query_params)
         filter_serializer.is_valid(raise_exception=True)
@@ -131,3 +133,47 @@ class ListBlogPostsAccountModeAPI(APIView):
         response = paginator.get_paginated_response(serializer.data)
 
         return Response(response.data, status=status.HTTP_200_OK)
+
+
+class UpdateBlogPostAPI(APIView):
+    permission_classes = (IsAuthenticated,)
+    serializer_class = serializers.UpdateBlogPostSerializer
+    output_serializer = serializers.UpdateBlogPostOutputSerializer
+
+    def patch(self, request, pk):
+        serializer = self.serializer_class(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        updated_blog_post = services.update_blog_post(
+            data=serializer.validated_data, pk=pk, user=request.user
+        )
+
+        data = self.output_serializer(updated_blog_post).data
+
+        return Response(data, status=status.HTTP_200_OK)
+
+
+class BlogPostDetailAPI(APIView):
+    permission_classes = (IsAuthenticated,)
+    output_serializer = serializers.BlogPostDetailOutputSerializer
+
+    @extend_schema(
+        responses=serializers.BlogPostDetailOutputSerializer,
+    )
+    def get(self, request, pk):
+        blog_post = models.BlogPost.get(pk=pk, author=request.user)
+
+        output = self.output_serializer(blog_post).data
+
+        return Response(output, status=status.HTTP_200_OK)
+
+
+class SoftDeleteBlogPostAPI(APIView):
+    permission_classes = (IsAuthenticated,)
+
+    def delete(self, request, pk):
+        blog_post = models.BlogPost.get(pk=pk, author=request.user)
+        blog_post.post_type = "DE"
+        blog_post.save()
+
+        return Response(status=status.HTTP_200_OK)

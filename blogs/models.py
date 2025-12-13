@@ -54,7 +54,6 @@ class BlogPost(models.Model):
     body = models.TextField(blank=True, null=True)
     locked_to_subscribers = models.BooleanField(default=False)
     post_type = models.CharField(choices=PostType, max_length=255, default="DR")
-    is_deleted = models.BooleanField(default=False)
 
 
 class Comment(models.Model):

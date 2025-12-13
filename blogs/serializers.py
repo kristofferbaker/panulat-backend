@@ -86,3 +86,25 @@ class ListBlogPostsAccountModeOutputSerializer(serializers.ModelSerializer):
 
     def get_blog_name(self, obj):
         return obj.blog.blog_name
+
+
+class UpdateBlogPostSerializer(serializers.Serializer):
+    blog = serializers.PrimaryKeyRelatedField(queryset=Blog.objects.all())
+    opening_graphic = Base64ImageField()
+    title = serializers.CharField()
+    subtitle = serializers.CharField()
+    body = serializers.CharField()
+    locked_to_subscribers = serializers.BooleanField()
+    post_type = serializers.CharField()
+
+
+class UpdateBlogPostOutputSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = BlogPost
+        fields = "__all__"
+
+
+class BlogPostDetailOutputSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = BlogPost
+        fields = "__all__"

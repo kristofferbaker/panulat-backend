@@ -13,16 +13,21 @@ blog_posts_urlpatterns = [
         CreateBlogPostAPI.as_view(),
         name="create-blog-posts",
     ),
-    # path(
-    #     "",
-    #     EditBlogPostAPI.as_view(),
-    #     name="edit-blog-post",
-    # ),
-    # path(
-    #     "",
-    #     SoftDeleteBlogPostAPI.as_view(),
-    #     name="soft-delete-blog-post",
-    # ),
+    path(
+        "update/<pk>/",
+        UpdateBlogPostAPI.as_view(),
+        name="update-blog-post",
+    ),
+    path(
+        "delete/<pk>/",
+        SoftDeleteBlogPostAPI.as_view(),
+        name="soft-delete-blog-post",
+    ),
+    path(
+        "<pk>/",
+        BlogPostDetailAPI.as_view(),
+        name="blog-post-detail",
+    ),
 ]
 
 
