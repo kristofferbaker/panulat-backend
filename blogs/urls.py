@@ -2,7 +2,70 @@ from django.urls import path, include
 from .views import *
 
 
-blog_posts_urlpatterns = [
+comments_urlpatterns = [
+    path(
+        "like-or-remove-like-comment/",
+        LikeOrRemoveLikeCommentAPI.as_view(),
+        name="like-or-remove-like-comment",
+    ),
+    path(
+        "update/<pk>/",
+        UpdateBlogPostCommentAPI.as_view(),
+        name="update-blog-post-comment",
+    ),
+    path(
+        "delete/<pk>/",
+        DeleteBlogPostCommentAPI.as_view(),
+        name="delete-blog-post-comment",
+    ),
+    path(
+        "",
+        ListBlogPostCommentsAPI.as_view(),
+        name="list-blog-post-comments",
+    ),
+    path(
+        "create/",
+        CreateBlogPostCommentAPI.as_view(),
+        name="create-blog-post-comment",
+    ),
+    path(
+        "<pk>/",
+        GetBlogPostCommentAPI.as_view(),
+        name="get-blog-post-comment",
+    ),
+]
+
+
+blog_posts_reading_mode_urlpatterns = [
+    path(
+        "like-or-remove-like-post/",
+        LikeOrRemoveLikeBlogPostAPI.as_view(),
+        name="like-or-remove-like-blog-post",
+    ),
+    path(
+        "",
+        ListPublishedBlogPostsReadingModeAPI.as_view(),
+        name="list-blog-posts-reading-mode",
+    ),
+    path(
+        "<pk>/",
+        BlogPostDetailReadingModeAPI.as_view(),
+        name="blog-post-detail-reading-mode",
+    ),
+]
+
+
+blog_posts_account_mode_urlpatterns = [
+    path(
+        "list-latest-posts-of-subscribed-to-blogs/",
+        ListLatestPostsOfSubscribedToBlogsAPI.as_view(),
+        name="list-latest-posts-of-subscribed-to-blogs",
+    ),
+    path(
+        "get-blogs-of-user/",
+        GetBlogsOfUserAPI.as_view(),
+        name="get-blogs-of-user",
+    ),
     path(
         "",
         ListBlogPostsAccountModeAPI.as_view(),
@@ -41,9 +104,19 @@ stats_urlpatterns = [
 
 subscriptions_urlpatterns = [
     path(
-        "",
-        ListLatestPostsOfSubscribedToBlogsAPI.as_view(),
-        name="list-latest-posts-of-subscribed-to-blogs",
+        "subscribe/",
+        SubscribeToBlogAPI.as_view(),
+        name="subscribe-to-blog",
+    ),
+    path(
+        "unsubscribe/<pk>/",
+        UnsubscribeToBlogAPI.as_view(),
+        name="unsubscribe-to-blog",
+    ),
+    path(
+        "get-subscription/",
+        GetSubscriptionAPI.as_view(),
+        name="get-subscription",
     ),
 ]
 
@@ -56,7 +129,18 @@ explore_urlpatterns = [
 ]
 
 urlpatterns = [
-    path("blog-posts/", include((blog_posts_urlpatterns, "blog-posts"))),
+    path(
+        "comments/",
+        include((comments_urlpatterns, "comments")),
+    ),
+    path(
+        "blog-posts/reading-mode/",
+        include((blog_posts_reading_mode_urlpatterns, "blog-posts-reading-mode")),
+    ),
+    path(
+        "blog-posts/account-mode/",
+        include((blog_posts_account_mode_urlpatterns, "blog-posts-account-mode")),
+    ),
     path("stats/", include((stats_urlpatterns, "stats"))),
     path("subscriptions/", include((subscriptions_urlpatterns, "subscriptions"))),
     path("explore/", include((explore_urlpatterns, "explore"))),

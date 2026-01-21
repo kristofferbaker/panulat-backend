@@ -72,3 +72,12 @@ class QuoteAdmin(admin.ModelAdmin):
         "owner",
         "text",
     )
+
+
+@admin.register(CommentLike)
+class CommentLikeAdmin(admin.ModelAdmin):
+    list_display = (
+        "comment",
+        "user",
+        "created_at",
+    )

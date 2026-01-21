@@ -19,20 +19,23 @@ class Blog(models.Model):
     created_at = models.DateTimeField(default=django.utils.timezone.now)
 
     @receiver(post_save, sender=CustomUser)
-    def create_or_update_blog(sender, instance, created, **kwargs):
-        Blog.objects.get_or_create(blog_author=instance)
+    def create_blog(sender, instance, created, **kwargs):
+        blog = Blog.objects.filter(blog_author=instance).first()
+
+        if blog == None:
+            Blog.objects.create(blog_author=instance)
 
 
+# Only logged-in users can subscribe.
+# User can only subscribe once to a blog.
 class Subscription(models.Model):
-    email = models.CharField(
-        max_length=255
-    )  # Use if reader is NOT logged in. Email can only be subscribed once to a blog
+    email = models.CharField(max_length=255)
     subscriber = models.ForeignKey(
         settings.AUTH_USER_MODEL, on_delete=models.CASCADE, null=True
     )  # Use if reader IS logged in.
     blog = models.ForeignKey(Blog, on_delete=models.CASCADE)
     created_at = models.DateTimeField(default=django.utils.timezone.now)
-    is_active = models.BooleanField(default=False)
+    is_active = models.BooleanField(default=True)
 
 
 class BlogPost(models.Model):
@@ -61,6 +64,7 @@ class Comment(models.Model):
     commenter = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     created_at = models.DateTimeField(default=django.utils.timezone.now)
     body = models.TextField()
+    is_active = models.BooleanField(default=True)
 
 
 class Like(models.Model):  # One like is alloted per user for a single post.
@@ -82,3 +86,9 @@ class Quote(models.Model):
     blog_post = models.ForeignKey(BlogPost, on_delete=models.CASCADE)
     owner = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     text = models.TextField()
+
+
+class CommentLike(models.Model):  # One like is alloted per user for a single comment.
+    comment = models.ForeignKey(Comment, on_delete=models.CASCADE)
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    created_at = models.DateTimeField(default=django.utils.timezone.now)

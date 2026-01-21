@@ -119,3 +119,21 @@ def get_blog_posts_account_mode(data, user):
     blog_posts = BlogPost.objects.filter(author=user, post_type=post_type)
 
     return blog_posts
+
+
+def get_published_blog_posts_reading_mode(data):
+    blog = data.get("blog")
+    blog_posts = BlogPost.objects.filter(blog=blog, post_type="PU")
+
+    return blog_posts
+
+
+def get_blog_post_comments(data):
+    blog_post = data.get("blog_post")
+    comments = Comment.objects.filter(blog_post=blog_post, is_active=True)
+
+    return comments
+
+
+def get_subscription(data, user):
+    return Subscription.objects.filter(blog=data.get("blog"), subscriber=user).first()

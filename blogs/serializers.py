@@ -53,6 +53,7 @@ class CreateBlogPostInputSerializer(serializers.Serializer):
     subtitle = serializers.CharField(allow_blank=True, allow_null=True)
     body = serializers.CharField(allow_blank=True, allow_null=True)
     locked_to_subscribers = serializers.BooleanField()
+    post_type = serializers.CharField()
 
 
 class CreateBlogPostOutputSerializer(serializers.ModelSerializer):
@@ -90,7 +91,7 @@ class ListBlogPostsAccountModeOutputSerializer(serializers.ModelSerializer):
 
 class UpdateBlogPostSerializer(serializers.Serializer):
     blog = serializers.PrimaryKeyRelatedField(queryset=Blog.objects.all())
-    opening_graphic = Base64ImageField()
+    opening_graphic = Base64ImageField(required=False)
     title = serializers.CharField()
     subtitle = serializers.CharField()
     body = serializers.CharField()
@@ -107,4 +108,163 @@ class UpdateBlogPostOutputSerializer(serializers.ModelSerializer):
 class BlogPostDetailOutputSerializer(serializers.ModelSerializer):
     class Meta:
         model = BlogPost
+        fields = "__all__"
+
+
+class GetBlogsOfUserOutputSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Blog
+        fields = "__all__"
+
+
+class ListPublishedBlogPostsReadingModeFilterSerializer(serializers.Serializer):
+    blog = serializers.PrimaryKeyRelatedField(queryset=Blog.objects.all())
+
+
+class ListPublishedBlogPostsReadingModeOutputSerializer(serializers.ModelSerializer):
+    no_of_likes = serializers.SerializerMethodField()
+    no_of_comments = serializers.SerializerMethodField()
+    no_of_views = serializers.SerializerMethodField()
+    blog_name = serializers.SerializerMethodField()
+    author = serializers.SerializerMethodField()
+
+    class Meta:
+        model = BlogPost
+        fields = "__all__"
+
+    def get_no_of_likes(self, obj):
+        return Like.objects.filter(blog_post=obj).count()
+
+    def get_no_of_comments(self, obj):
+        return Comment.objects.filter(blog_post=obj).count()
+
+    def get_no_of_views(self, obj):
+        return View.objects.filter(blog_post=obj).count()
+
+    def get_blog_name(self, obj):
+        return obj.blog.blog_name
+
+    def get_author(self, obj):
+        class AuthorInlineSerializer(serializers.ModelSerializer):
+            class Meta:
+                model = CustomUser
+                fields = (
+                    "username",
+                    "first_name",
+                    "last_name",
+                )
+
+        return AuthorInlineSerializer(obj.author).data
+
+
+class BlogPostDetailReadingModeOutputSerializer(serializers.ModelSerializer):
+    no_of_likes = serializers.SerializerMethodField()
+    no_of_comments = serializers.SerializerMethodField()
+    no_of_views = serializers.SerializerMethodField()
+    blog_name = serializers.SerializerMethodField()
+    author = serializers.SerializerMethodField()
+
+    class Meta:
+        model = BlogPost
+        fields = "__all__"
+
+    def get_no_of_likes(self, obj):
+        return Like.objects.filter(blog_post=obj).count()
+
+    def get_no_of_comments(self, obj):
+        return Comment.objects.filter(blog_post=obj).count()
+
+    def get_no_of_views(self, obj):
+        return View.objects.filter(blog_post=obj).count()
+
+    def get_blog_name(self, obj):
+        return obj.blog.blog_name
+
+    def get_author(self, obj):
+        class AuthorInlineSerializer(serializers.ModelSerializer):
+            class Meta:
+                model = CustomUser
+                fields = (
+                    "username",
+                    "first_name",
+                    "last_name",
+                )
+
+        return AuthorInlineSerializer(obj.author).data
+
+
+class LikeOrRemoveLikeBlogPostInputSerializer(serializers.Serializer):
+    blog_post = serializers.PrimaryKeyRelatedField(queryset=BlogPost.objects.all())
+
+
+class ListBlogCommentsFilterSerializer(serializers.Serializer):
+    blog_post = serializers.PrimaryKeyRelatedField(queryset=BlogPost.objects.all())
+
+
+class ListBlogCommentsOutputSerializer(serializers.ModelSerializer):
+    commenter = serializers.SerializerMethodField()
+    comment_likes = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Comment
+        fields = "__all__"
+
+    def get_commenter(self, obj):
+        class CommenterInlineSerializer(serializers.ModelSerializer):
+            class Meta:
+                model = CustomUser
+                fields = (
+                    "username",
+                    "first_name",
+                    "last_name",
+                )
+
+        return CommenterInlineSerializer(obj.commenter).data
+
+    def get_comment_likes(self, obj):
+        return CommentLike.objects.filter(comment=obj).count()
+
+
+class CreateBlogPostCommentInputSerializer(serializers.Serializer):
+    blog_post = serializers.PrimaryKeyRelatedField(queryset=BlogPost.objects.all())
+    body = serializers.CharField()
+
+
+class CreateBlogPostCommentOutputSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Comment
+        fields = "__all__"
+
+
+class UpdateBlogPostCommentSerializer(serializers.Serializer):
+    body = serializers.CharField()
+
+
+class UpdateBlogPostCommentOutputSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Comment
+        fields = "__all__"
+
+
+class GetBlogPostCommentOutputSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Comment
+        fields = "__all__"
+
+
+class LikeOrRemoveLikeCommentInputSerializer(serializers.Serializer):
+    comment = serializers.PrimaryKeyRelatedField(queryset=Comment.objects.all())
+
+
+class SubscribeToBlogInputSerializer(serializers.Serializer):
+    blog = serializers.PrimaryKeyRelatedField(queryset=Blog.objects.all())
+
+
+class GetSubscriptionsFilterSerializer(serializers.Serializer):
+    blog = serializers.PrimaryKeyRelatedField(queryset=Blog.objects.all())
+
+
+class GetSubscriptionOutputSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Subscription
         fields = "__all__"

@@ -7,6 +7,7 @@ from drf_spectacular.utils import extend_schema, OpenApiParameter, inline_serial
 from drf_spectacular.types import OpenApiTypes
 from . import models, serializers, services, selectors, pagination, permissions
 from rest_framework import serializers as rest_serializers
+from django.http import Http404
 
 
 # API for searching blogs by their name.
@@ -124,7 +125,7 @@ class ListBlogPostsAccountModeAPI(APIView):
 
         blog_posts = selectors.get_blog_posts_account_mode(
             data=filter_serializer.validated_data, user=request.user
-        )
+        ).order_by("-created_at")
 
         # Paginate records.
         paginator = self.pagination_class()
@@ -161,7 +162,7 @@ class BlogPostDetailAPI(APIView):
         responses=serializers.BlogPostDetailOutputSerializer,
     )
     def get(self, request, pk):
-        blog_post = models.BlogPost.get(pk=pk, author=request.user)
+        blog_post = models.BlogPost.objects.get(pk=pk, author=request.user)
 
         output = self.output_serializer(blog_post).data
 
@@ -172,8 +173,263 @@ class SoftDeleteBlogPostAPI(APIView):
     permission_classes = (IsAuthenticated,)
 
     def delete(self, request, pk):
-        blog_post = models.BlogPost.get(pk=pk, author=request.user)
+        blog_post = models.BlogPost.objects.get(pk=pk, author=request.user)
         blog_post.post_type = "DE"
         blog_post.save()
 
         return Response(status=status.HTTP_200_OK)
+
+
+class GetBlogsOfUserAPI(APIView):
+    permission_classes = (IsAuthenticated,)
+    output_serializer = serializers.GetBlogsOfUserOutputSerializer
+
+    @extend_schema(
+        responses=serializers.GetBlogsOfUserOutputSerializer,
+    )
+    def get(self, request):
+        blogs = models.Blog.objects.filter(blog_author=request.user).order_by(
+            "-created_at"
+        )
+
+        output = self.output_serializer(blogs, many=True).data
+
+        return Response(output, status=status.HTTP_200_OK)
+
+
+class ListPublishedBlogPostsReadingModeAPI(APIView):
+    permission_classes = (AllowAny,)
+    filter_serializer_class = (
+        serializers.ListPublishedBlogPostsReadingModeFilterSerializer
+    )
+    serializer_class = serializers.ListPublishedBlogPostsReadingModeOutputSerializer
+    pagination_class = pagination.PageNumberPagination
+
+    @extend_schema(
+        parameters=[
+            OpenApiParameter("post_type", OpenApiTypes.STR),
+        ],
+        responses=serializers.ListPublishedBlogPostsReadingModeOutputSerializer,
+    )
+    def get(self, request):
+        filter_serializer = self.filter_serializer_class(data=request.query_params)
+        filter_serializer.is_valid(raise_exception=True)
+
+        blog_posts = selectors.get_published_blog_posts_reading_mode(
+            data=filter_serializer.validated_data
+        ).order_by("-created_at")
+
+        # Paginate records.
+        paginator = self.pagination_class()
+        paginated_results = paginator.paginate_queryset(blog_posts, request)
+        serializer = self.serializer_class(paginated_results, many=True)
+        response = paginator.get_paginated_response(serializer.data)
+
+        return Response(response.data, status=status.HTTP_200_OK)
+
+
+class BlogPostDetailReadingModeAPI(APIView):
+    permission_classes = (AllowAny,)
+    output_serializer = serializers.BlogPostDetailReadingModeOutputSerializer
+
+    @extend_schema(
+        responses=serializers.BlogPostDetailReadingModeOutputSerializer,
+    )
+    def get(self, request, pk):
+        blog_post = models.BlogPost.objects.get(pk=pk, post_type="PU")
+
+        output = self.output_serializer(blog_post).data
+
+        return Response(output, status=status.HTTP_200_OK)
+
+
+class LikeOrRemoveLikeBlogPostAPI(APIView):
+    permission_classes = (IsAuthenticated,)
+    input_serializer_class = serializers.LikeOrRemoveLikeBlogPostInputSerializer
+
+    @extend_schema(
+        request=serializers.LikeOrRemoveLikeBlogPostInputSerializer,
+    )
+    def post(self, request):
+        input_serializer = self.input_serializer_class(data=request.data)
+        input_serializer.is_valid(raise_exception=True)
+
+        data = input_serializer.validated_data
+
+        services.like_or_remove_like_blog_post(data, user=request.user)
+
+        return Response(status=status.HTTP_200_OK)
+
+
+class ListBlogPostCommentsAPI(APIView):
+    filter_serializer_class = serializers.ListBlogCommentsFilterSerializer
+    serializer_class = serializers.ListBlogCommentsOutputSerializer
+    permission_classes = (AllowAny,)
+    pagination_class = pagination.PageNumberPagination
+
+    @extend_schema(
+        parameters=[
+            OpenApiParameter("blog_post", OpenApiTypes.INT),
+        ],
+    )
+    def get(self, request):
+        filter_serializer = self.filter_serializer_class(data=request.query_params)
+        filter_serializer.is_valid(raise_exception=True)
+
+        comments = selectors.get_blog_post_comments(
+            data=filter_serializer.validated_data
+        )
+
+        # Paginate records.
+        paginator = self.pagination_class()
+        paginated_results = paginator.paginate_queryset(comments, request)
+        serializer = self.serializer_class(paginated_results, many=True)
+        response = paginator.get_paginated_response(serializer.data)
+
+        return Response(response.data, status=status.HTTP_200_OK)
+
+
+class CreateBlogPostCommentAPI(APIView):
+    permission_classes = (IsAuthenticated,)
+    input_serializer_class = serializers.CreateBlogPostCommentInputSerializer
+    output_serializer_class = serializers.CreateBlogPostCommentOutputSerializer
+
+    @extend_schema(
+        request=serializers.CreateBlogPostCommentInputSerializer,
+        responses=serializers.CreateBlogPostCommentOutputSerializer,
+    )
+    def post(self, request):
+        input_serializer = self.input_serializer_class(data=request.data)
+        input_serializer.is_valid(raise_exception=True)
+
+        data = input_serializer.validated_data
+
+        comment = services.create_blog_post_comment(data, user=request.user)
+
+        output = self.output_serializer_class(comment).data
+
+        return Response(output, status=status.HTTP_200_OK)
+
+
+class DeleteBlogPostCommentAPI(APIView):
+    permission_classes = (IsAuthenticated,)
+
+    def delete(self, request, pk):
+        comment = models.Comment.objects.get(pk=pk, commenter=request.user)
+        comment.is_active = False
+        comment.save()
+
+        return Response(status=status.HTTP_200_OK)
+
+
+class UpdateBlogPostCommentAPI(APIView):
+    permission_classes = (IsAuthenticated,)
+    serializer_class = serializers.UpdateBlogPostCommentSerializer
+    output_serializer = serializers.UpdateBlogPostCommentOutputSerializer
+
+    def patch(self, request, pk):
+        serializer = self.serializer_class(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        updated_blog_post_comment = services.update_blog_post_comment(
+            data=serializer.validated_data, pk=pk, user=request.user
+        )
+
+        data = self.output_serializer(updated_blog_post_comment).data
+
+        return Response(data, status=status.HTTP_200_OK)
+
+
+class GetBlogPostCommentAPI(APIView):
+    permission_classes = (IsAuthenticated,)
+    output_serializer = serializers.GetBlogPostCommentOutputSerializer
+
+    @extend_schema(
+        responses=serializers.GetBlogPostCommentOutputSerializer,
+    )
+    def get(self, request, pk):
+        try:
+            comment = models.Comment.objects.get(pk=pk, commenter=request.user)
+
+            output = self.output_serializer(comment).data
+
+            return Response(output, status=status.HTTP_200_OK)
+        except:
+            raise Http404("Something went wrong.")
+
+
+class LikeOrRemoveLikeCommentAPI(APIView):
+    permission_classes = (IsAuthenticated,)
+    input_serializer_class = serializers.LikeOrRemoveLikeCommentInputSerializer
+
+    @extend_schema(
+        request=serializers.LikeOrRemoveLikeCommentInputSerializer,
+    )
+    def post(self, request):
+        input_serializer = self.input_serializer_class(data=request.data)
+        input_serializer.is_valid(raise_exception=True)
+
+        data = input_serializer.validated_data
+
+        services.like_or_remove_like_comment(data, user=request.user)
+
+        return Response(status=status.HTTP_200_OK)
+
+
+class SubscribeToBlogAPI(APIView):
+    permission_classes = (IsAuthenticated,)
+    input_serializer_class = serializers.SubscribeToBlogInputSerializer
+
+    @extend_schema(
+        request=serializers.SubscribeToBlogInputSerializer,
+    )
+    def post(self, request):
+        input_serializer = self.input_serializer_class(data=request.data)
+        input_serializer.is_valid(raise_exception=True)
+
+        data = input_serializer.validated_data
+
+        services.subscribe_to_blog(data, user=request.user)
+
+        return Response(status=status.HTTP_200_OK)
+
+
+class UnsubscribeToBlogAPI(APIView):
+    permission_classes = (IsAuthenticated,)
+
+    def patch(self, request, pk):
+        try:
+            subscription = models.Subscription.objects.get(pk=pk)
+            subscription.is_active = False
+            subscription.save()
+
+            return Response(status=status.HTTP_200_OK)
+        except:
+            raise Http404("Something went wrong.")
+
+
+class GetSubscriptionAPI(APIView):
+    permission_classes = (IsAuthenticated,)
+    filter_serializer = serializers.GetSubscriptionsFilterSerializer
+    output_serializer = serializers.GetSubscriptionOutputSerializer
+
+    @extend_schema(
+        responses=serializers.GetSubscriptionOutputSerializer,
+    )
+    def get(self, request):
+        try:
+            filter_serializer = self.filter_serializer(data=request.query_params)
+            filter_serializer.is_valid(raise_exception=True)
+
+            subscription = selectors.get_subscription(
+                data=filter_serializer.validated_data, user=request.user
+            )
+
+            if subscription == None:
+                output = False
+            else:
+                output = self.output_serializer(subscription).data
+
+            return Response(output, status=status.HTTP_200_OK)
+        except:
+            raise Http404("Something went wrong.")
