@@ -38,6 +38,16 @@ comments_urlpatterns = [
 
 blog_posts_reading_mode_urlpatterns = [
     path(
+        "get-latest-ten-blog-posts-of-blog/<pk>/",
+        GetLatestTenBlogPostsofBlogAPI.as_view(),
+        name="get-latest-ten-blog-posts-of-blog",
+    ),
+    path(
+        "filter-blog-posts/",
+        FilterBlogPostsofBlogAPI.as_view(),
+        name="filter-blog-posts-of-blog",
+    ),
+    path(
         "like-or-remove-like-post/",
         LikeOrRemoveLikeBlogPostAPI.as_view(),
         name="like-or-remove-like-blog-post",

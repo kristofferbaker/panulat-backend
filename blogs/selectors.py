@@ -137,3 +137,11 @@ def get_blog_post_comments(data):
 
 def get_subscription(data, user):
     return Subscription.objects.filter(blog=data.get("blog"), subscriber=user).first()
+
+
+def filter_blog_posts(data):
+    search_query = data.get("search_query")
+
+    blog_posts = BlogPost.objects.filter(title__icontains=search_query)
+
+    return blog_posts

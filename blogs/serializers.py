@@ -268,3 +268,19 @@ class GetSubscriptionOutputSerializer(serializers.ModelSerializer):
     class Meta:
         model = Subscription
         fields = "__all__"
+
+
+class BlogPostsFilterSerializer(serializers.Serializer):
+    search_query = serializers.CharField(required=False)
+
+
+class BlogPostsFilterOutputSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = BlogPost
+        fields = "__all__"
+
+
+class GetLatestTenBlogPostsofBlogOutputSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = BlogPost
+        fields = "__all__"

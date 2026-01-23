@@ -433,3 +433,53 @@ class GetSubscriptionAPI(APIView):
             return Response(output, status=status.HTTP_200_OK)
         except:
             raise Http404("Something went wrong.")
+
+
+class FilterBlogPostsofBlogAPI(APIView):
+    filter_serializer_class = serializers.BlogPostsFilterSerializer
+    serializer_class = serializers.BlogPostsFilterOutputSerializer
+    permission_classes = (AllowAny,)
+    pagination_class = pagination.PageNumberPagination
+
+    @extend_schema(
+        parameters=[
+            OpenApiParameter("search_query", OpenApiTypes.STR),
+        ],
+    )
+    def get(self, request):
+        filter_serializer = self.filter_serializer_class(data=request.query_params)
+        filter_serializer.is_valid(raise_exception=True)
+
+        search_results = selectors.filter_blog_posts(
+            data=filter_serializer.validated_data
+        )
+
+        # Paginate records.
+        paginator = self.pagination_class()
+        paginated_results = paginator.paginate_queryset(search_results, request)
+        serializer = self.serializer_class(paginated_results, many=True)
+        response = paginator.get_paginated_response(serializer.data)
+
+        return Response(response.data, status=status.HTTP_200_OK)
+
+
+class GetLatestTenBlogPostsofBlogAPI(APIView):
+    permission_classes = (AllowAny,)
+    output_serializer = serializers.GetLatestTenBlogPostsofBlogOutputSerializer
+
+    @extend_schema(
+        responses=serializers.GetLatestTenBlogPostsofBlogOutputSerializer,
+    )
+    def get(self, request, pk):
+        try:
+            # Get latest published 10 blog posts of specific blog.
+            blog = models.Blog.objects.get(pk=pk)
+            latest_ten_blog_posts = models.BlogPost.objects.filter(
+                blog=blog, post_type="PU"
+            ).order_by("-created_at")[:10]
+
+            output = self.output_serializer(latest_ten_blog_posts, many=True).data
+
+            return Response(output, status=status.HTTP_200_OK)
+        except:
+            raise Http404("Something went wrong.")
