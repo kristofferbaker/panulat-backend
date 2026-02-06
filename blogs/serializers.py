@@ -1,6 +1,7 @@
 from rest_framework import serializers
 from .models import *
 from drf_extra_fields.fields import Base64ImageField
+from accounts.models import UserProfile, CustomUser
 
 
 class GlobalExploreFilterSerializer(serializers.Serializer):
@@ -283,4 +284,114 @@ class BlogPostsFilterOutputSerializer(serializers.ModelSerializer):
 class GetLatestTenBlogPostsofBlogOutputSerializer(serializers.ModelSerializer):
     class Meta:
         model = BlogPost
+        fields = "__all__"
+
+
+class GetProfileOutputSerializer(serializers.ModelSerializer):
+    user = serializers.SerializerMethodField()
+    blogs = serializers.SerializerMethodField()
+
+    class Meta:
+        model = UserProfile
+        fields = "__all__"
+
+    def get_user(self, obj):
+        class UserInlineSerializer(serializers.ModelSerializer):
+            class Meta:
+                model = CustomUser
+                fields = [
+                    "username",
+                    "first_name",
+                    "last_name",
+                ]
+
+        return UserInlineSerializer(obj.user).data
+
+    def get_blogs(self, obj):
+        class BlogInlineSerializer(serializers.ModelSerializer):
+            class Meta:
+                model = Blog
+                fields = [
+                    "blog_name",
+                ]
+
+        blogs = Blog.objects.filter(blog_author=obj.user)
+
+        return BlogInlineSerializer(blogs, many=True).data
+
+
+class GetPostsTabOutputSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = BlogPost
+        fields = "__all__"
+
+
+class GetProfileInputSerializer(serializers.Serializer):
+    user = serializers.PrimaryKeyRelatedField(queryset=CustomUser.objects.all())
+
+
+class GetPostsTabInputSerializer(serializers.Serializer):
+    author = serializers.PrimaryKeyRelatedField(queryset=CustomUser.objects.all())
+
+
+class GetCommentsTabOutputSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Comment
+        fields = "__all__"
+
+
+class GetCommentsTabInputSerializer(serializers.Serializer):
+    commenter = serializers.PrimaryKeyRelatedField(queryset=CustomUser.objects.all())
+
+
+class GetLikesTabInputSerializer(serializers.Serializer):
+    user = serializers.PrimaryKeyRelatedField(queryset=CustomUser.objects.all())
+
+
+class GetLikesTabOutputSerializer(serializers.Serializer):
+    blog_posts = serializers.SerializerMethodField()
+    comments = serializers.SerializerMethodField()
+
+
+class GetReadsTabInputSerializer(serializers.Serializer):
+    user = serializers.PrimaryKeyRelatedField(queryset=CustomUser.objects.all())
+
+
+class GetReadsTabOutputSerializer(serializers.ModelSerializer):
+    blog_author = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Blog
+        fields = "__all__"
+
+    def get_blog_author(self, obj):
+        class UserInlineSerializer(serializers.ModelSerializer):
+            class Meta:
+                model = CustomUser
+                fields = [
+                    "username",
+                    "first_name",
+                    "last_name",
+                ]
+
+        return UserInlineSerializer(obj.blog_author).data
+
+
+class EditProfilePictureInputSerializer(serializers.Serializer):
+    profile_picture = Base64ImageField()
+
+
+class EditProfilePictureOutputSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = UserProfile
+        fields = "__all__"
+
+
+class EditProfileBannerInputSerializer(serializers.Serializer):
+    profile_banner = Base64ImageField()
+
+
+class EditProfileBannerOutputSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = UserProfile
         fields = "__all__"

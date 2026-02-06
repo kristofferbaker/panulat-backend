@@ -8,6 +8,7 @@ from drf_spectacular.types import OpenApiTypes
 from . import models, serializers, services, selectors, pagination, permissions
 from rest_framework import serializers as rest_serializers
 from django.http import Http404
+from accounts.models import UserProfile, CustomUser
 
 
 # API for searching blogs by their name.
@@ -316,8 +317,7 @@ class DeleteBlogPostCommentAPI(APIView):
 
     def delete(self, request, pk):
         comment = models.Comment.objects.get(pk=pk, commenter=request.user)
-        comment.is_active = False
-        comment.save()
+        comment.delete()
 
         return Response(status=status.HTTP_200_OK)
 
@@ -483,3 +483,244 @@ class GetLatestTenBlogPostsofBlogAPI(APIView):
             return Response(output, status=status.HTTP_200_OK)
         except:
             raise Http404("Something went wrong.")
+
+
+class GetProfileAPI(APIView):
+    permission_classes = (AllowAny,)
+    filter_serializer = serializers.GetProfileInputSerializer
+    output_serializer = serializers.GetProfileOutputSerializer
+
+    @extend_schema(
+        responses=serializers.GetProfileOutputSerializer,
+    )
+    def get(self, request):
+        try:
+            filter_serializer = self.filter_serializer(data=request.query_params)
+            filter_serializer.is_valid(raise_exception=True)
+            data = filter_serializer.validated_data
+
+            profile = UserProfile.objects.filter(user=data["user"]).first()
+
+            output = self.output_serializer(profile).data
+
+            return Response(output, status=status.HTTP_200_OK)
+        except:
+            raise Http404("Something went wrong.")
+
+
+# Change the permission to allow any. change how filtering works instead of basing on request.user.
+class PostsTabAPI(APIView):
+    permission_classes = (AllowAny,)
+    filter_serializer = serializers.GetPostsTabInputSerializer
+    output_serializer = serializers.GetPostsTabOutputSerializer
+
+    @extend_schema(
+        responses=serializers.GetPostsTabOutputSerializer,
+    )
+    def get(self, request):
+        try:
+            filter_serializer = self.filter_serializer(data=request.query_params)
+            filter_serializer.is_valid(raise_exception=True)
+            data = filter_serializer.validated_data
+
+            posts = models.BlogPost.objects.filter(
+                author=data["author"], post_type="PU"
+            ).order_by("-created_at")
+
+            output = self.output_serializer(posts, many=True).data
+
+            return Response(output, status=status.HTTP_200_OK)
+        except:
+            raise Http404("Something went wrong.")
+
+
+class CommentsTabAPI(APIView):
+    permission_classes = (AllowAny,)
+    filter_serializer = serializers.GetCommentsTabInputSerializer
+    output_serializer = serializers.GetCommentsTabOutputSerializer
+
+    @extend_schema(
+        responses=serializers.GetCommentsTabOutputSerializer,
+    )
+    def get(self, request):
+        try:
+            filter_serializer = self.filter_serializer(data=request.query_params)
+            filter_serializer.is_valid(raise_exception=True)
+            data = filter_serializer.validated_data
+
+            comments = models.Comment.objects.filter(
+                commenter=data["commenter"]
+            ).order_by("-created_at")
+
+            output = self.output_serializer(comments, many=True).data
+
+            return Response(output, status=status.HTTP_200_OK)
+        except:
+            raise Http404("Something went wrong.")
+
+
+class LikesTabAPI(APIView):
+    permission_classes = (AllowAny,)
+    filter_serializer = serializers.GetLikesTabInputSerializer
+
+    def get(self, request):
+        try:
+            filter_serializer = self.filter_serializer(data=request.query_params)
+            filter_serializer.is_valid(raise_exception=True)
+            data = filter_serializer.validated_data
+
+            comment_likes = models.CommentLike.objects.filter(user=data["user"])
+
+            class CommentInlineSerializer(rest_serializers.ModelSerializer):
+                commenter = rest_serializers.SerializerMethodField()
+                profile = rest_serializers.SerializerMethodField()
+
+                class Meta:
+                    model = models.Comment
+                    fields = "__all__"
+
+                def get_commenter(self, obj):
+                    class UserInlineSerializer(rest_serializers.ModelSerializer):
+                        class Meta:
+                            model = CustomUser
+                            fields = [
+                                "username",
+                                "first_name",
+                                "last_name",
+                            ]
+
+                    return UserInlineSerializer(obj.commenter).data
+
+                def get_profile(self, obj):
+                    class UserProfileInlineSerializer(rest_serializers.ModelSerializer):
+                        class Meta:
+                            model = UserProfile
+                            fields = [
+                                "profile_picture",
+                            ]
+
+                    user_profile = UserProfile.objects.filter(user=obj.commenter)
+
+                    return UserProfileInlineSerializer(user_profile).data
+
+            liked_comments = []
+
+            for comment_like in comment_likes:
+                comment = comment_like.comment
+
+                serialized_comment = CommentInlineSerializer(comment).data
+
+                liked_comments.append(serialized_comment)
+
+            class PostsInlineSerializer(rest_serializers.ModelSerializer):
+                blog = rest_serializers.SerializerMethodField()
+                author = rest_serializers.SerializerMethodField()
+
+                class Meta:
+                    model = models.BlogPost
+                    fields = "__all__"
+
+                def get_blog(self, obj):
+                    class BlogInlineSerializer(rest_serializers.ModelSerializer):
+                        class Meta:
+                            model = models.Blog
+                            fields = [
+                                "blog_name",
+                            ]
+
+                    return BlogInlineSerializer(obj.blog).data
+
+                def get_author(self, obj):
+                    class UserInlineSerializer(rest_serializers.ModelSerializer):
+                        class Meta:
+                            model = CustomUser
+                            fields = [
+                                "username",
+                                "first_name",
+                                "last_name",
+                            ]
+
+                    return UserInlineSerializer(obj.author).data
+
+            post_likes = models.Like.objects.filter(user=data["user"])
+
+            liked_posts = []
+
+            for post_like in post_likes:
+                post = post_like.blog_post
+
+                serialized_post = PostsInlineSerializer(post).data
+
+                liked_posts.append(serialized_post)
+
+            output = {"liked_comments": liked_comments, "liked_posts": liked_posts}
+
+            return Response(output, status=status.HTTP_200_OK)
+        except:
+            raise Http404("Something went wrong.")
+
+
+class ReadsTabAPI(APIView):
+    permission_classes = (AllowAny,)
+    filter_serializer = serializers.GetReadsTabInputSerializer
+    output_serializer = serializers.GetReadsTabOutputSerializer
+
+    @extend_schema(
+        responses=serializers.GetReadsTabOutputSerializer,
+    )
+    def get(self, request):
+        try:
+            filter_serializer = self.filter_serializer(data=request.query_params)
+            filter_serializer.is_valid(raise_exception=True)
+            data = filter_serializer.validated_data
+
+            subscriptions = models.Subscription.objects.filter(subscriber=data["user"])
+
+            subscribed_to_blogs = []
+
+            for subscription in subscriptions:
+                blog = subscription.blog
+
+                subscribed_to_blogs.append(blog)
+
+            output = self.output_serializer(subscribed_to_blogs, many=True).data
+
+            return Response(output, status=status.HTTP_200_OK)
+        except:
+            raise Http404("Something went wrong.")
+
+
+class EditProfilePictureAPI(APIView):
+    permission_classes = (IsAuthenticated,)
+    serializer_class = serializers.EditProfilePictureInputSerializer
+    output_serializer = serializers.EditProfilePictureOutputSerializer
+
+    def patch(self, request):
+        serializer = self.serializer_class(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        updated_profile = services.edit_profile_picture(
+            data=serializer.validated_data, user=request.user
+        )
+
+        data = self.output_serializer(updated_profile).data
+
+        return Response(data, status=status.HTTP_200_OK)
+
+
+class EditProfileBannerAPI(APIView):
+    permission_classes = (IsAuthenticated,)
+    serializer_class = serializers.EditProfileBannerInputSerializer
+    output_serializer = serializers.EditProfileBannerOutputSerializer
+
+    def patch(self, request):
+        serializer = self.serializer_class(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        updated_profile = services.edit_profile_banner(
+            data=serializer.validated_data, user=request.user
+        )
+
+        data = self.output_serializer(updated_profile).data
+
+        return Response(data, status=status.HTTP_200_OK)

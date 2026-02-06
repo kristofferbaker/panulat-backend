@@ -1,6 +1,44 @@
 from django.urls import path, include
 from .views import *
 
+profile_urlpatterns = [
+    path(
+        "edit-profile-banner/",
+        EditProfileBannerAPI.as_view(),
+        name="edit-profile-banner",
+    ),
+    path(
+        "edit-profile-picture/",
+        EditProfilePictureAPI.as_view(),
+        name="edit-profile-picture",
+    ),
+    path(
+        "reads/",
+        ReadsTabAPI.as_view(),
+        name="get-reads",
+    ),
+    path(
+        "likes/",
+        LikesTabAPI.as_view(),
+        name="get-likes",
+    ),
+    path(
+        "comments/",
+        CommentsTabAPI.as_view(),
+        name="get-comments",
+    ),
+    path(
+        "posts/",
+        PostsTabAPI.as_view(),
+        name="get-posts",
+    ),
+    path(
+        "",
+        GetProfileAPI.as_view(),
+        name="get-profile",
+    ),
+]
+
 
 comments_urlpatterns = [
     path(
@@ -139,6 +177,10 @@ explore_urlpatterns = [
 ]
 
 urlpatterns = [
+    path(
+        "profile/",
+        include((profile_urlpatterns, "profile")),
+    ),
     path(
         "comments/",
         include((comments_urlpatterns, "comments")),

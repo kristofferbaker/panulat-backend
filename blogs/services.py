@@ -1,5 +1,6 @@
 from django.db import transaction
 from blogs.models import *
+from accounts.models import UserProfile
 from django.core.exceptions import ValidationError
 from rest_framework import status
 
@@ -136,3 +137,25 @@ def subscribe_to_blog(data, user):
         # reactivate subscription.
         subscription.is_active = True
         subscription.save()
+
+
+def edit_profile_picture(data, user):
+    user_profile = UserProfile.objects.filter(user=user).first()
+    new_profile_picture = data.get("profile_picture")
+
+    # Update user profile with the new picture.
+    user_profile.profile_picture = new_profile_picture
+    user_profile.save()
+
+    return user_profile
+
+
+def edit_profile_banner(data, user):
+    user_profile = UserProfile.objects.filter(user=user).first()
+    new_profile_banner = data.get("profile_banner")
+
+    # Update user profile with the new banner.
+    user_profile.profile_banner = new_profile_banner
+    user_profile.save()
+
+    return user_profile

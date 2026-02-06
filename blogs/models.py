@@ -64,7 +64,6 @@ class Comment(models.Model):
     commenter = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     created_at = models.DateTimeField(default=django.utils.timezone.now)
     body = models.TextField()
-    is_active = models.BooleanField(default=True)
 
 
 class Like(models.Model):  # One like is alloted per user for a single post.
