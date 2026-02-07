@@ -74,7 +74,7 @@ comments_urlpatterns = [
 ]
 
 
-blog_posts_reading_mode_urlpatterns = [
+reading_mode_urlpatterns = [
     path(
         "get-latest-ten-blog-posts-of-blog/<pk>/",
         GetLatestTenBlogPostsofBlogAPI.as_view(),
@@ -103,7 +103,7 @@ blog_posts_reading_mode_urlpatterns = [
 ]
 
 
-blog_posts_account_mode_urlpatterns = [
+account_mode_urlpatterns = [
     path(
         "list-latest-posts-of-subscribed-to-blogs/",
         ListLatestPostsOfSubscribedToBlogsAPI.as_view(),
@@ -186,12 +186,12 @@ urlpatterns = [
         include((comments_urlpatterns, "comments")),
     ),
     path(
-        "blog-posts/reading-mode/",
-        include((blog_posts_reading_mode_urlpatterns, "blog-posts-reading-mode")),
+        "reading-mode/",
+        include((reading_mode_urlpatterns, "reading-mode")),
     ),
     path(
-        "blog-posts/account-mode/",
-        include((blog_posts_account_mode_urlpatterns, "blog-posts-account-mode")),
+        "account-mode/",
+        include((account_mode_urlpatterns, "account-mode")),
     ),
     path("stats/", include((stats_urlpatterns, "stats"))),
     path("subscriptions/", include((subscriptions_urlpatterns, "subscriptions"))),

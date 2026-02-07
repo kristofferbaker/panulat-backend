@@ -11,7 +11,6 @@ from django.http import Http404
 from accounts.models import UserProfile, CustomUser
 
 
-# API for searching blogs by their name.
 class GlobalExploreAPI(APIView):
     filter_serializer_class = serializers.GlobalExploreFilterSerializer
     serializer_class = serializers.GlobalExploreOutputSerializer
@@ -22,6 +21,8 @@ class GlobalExploreAPI(APIView):
         parameters=[
             OpenApiParameter("search_query", OpenApiTypes.STR),
         ],
+        operation_id="Global explore of blogs",
+        description="API for searching blogs by their name.",
     )
     def get(self, request):
         filter_serializer = self.filter_serializer_class(data=request.query_params)
@@ -38,12 +39,18 @@ class GlobalExploreAPI(APIView):
         return Response(response.data, status=status.HTTP_200_OK)
 
 
-# API for getting the list of the latest blog posts of blogs a user has subscribed to.
 class ListLatestPostsOfSubscribedToBlogsAPI(APIView):
     permission_classes = (IsAuthenticated,)
     serializer_class = serializers.ListLatestPostsOfSubscribedToBlogsOutputSerializer
     pagination_class = pagination.PageNumberPagination
 
+    @extend_schema(
+        parameters=[
+            OpenApiParameter("search_query", OpenApiTypes.STR),
+        ],
+        operation_id="List latest posts of subscribed to blogs",
+        description="API for getting the list of the latest blog posts of blogs a user has subscribed to.",
+    )
     def get(self, request):
         latest_blog_posts = selectors.get_latest_blog_posts_of_subscribed_to_blogs(
             user=self.request.user
@@ -74,6 +81,8 @@ class StatsOverviewAPI(APIView):
                 "total_subscribers": rest_serializers.IntegerField(),
             },
         ),
+        operation_id="Get the stats of a user's blog",
+        description="API for getting the number of views and subscribers a user's blog has",
     )
     def get(self, request):
         filter_serializer = self.filter_serializer_class(data=request.query_params)
@@ -94,6 +103,8 @@ class CreateBlogPostAPI(APIView):
     @extend_schema(
         request=serializers.CreateBlogPostInputSerializer,
         responses=serializers.CreateBlogPostOutputSerializer,
+        operation_id="Create a blog post",
+        description="API for a user to create a blog post for their blog",
     )
     def post(self, request):
         input_serializer = self.input_serializer_class(data=request.data)
@@ -119,6 +130,8 @@ class ListBlogPostsAccountModeAPI(APIView):
             OpenApiParameter("post_type", OpenApiTypes.STR),
         ],
         responses=serializers.ListBlogPostsAccountModeOutputSerializer,
+        operation_id="Get the blogs posts of a user's blog",
+        description="API for allowing a user to view the blog posts of their blog in account mode",
     )
     def get(self, request):
         filter_serializer = self.filter_serializer_class(data=request.query_params)
@@ -142,6 +155,10 @@ class UpdateBlogPostAPI(APIView):
     serializer_class = serializers.UpdateBlogPostSerializer
     output_serializer = serializers.UpdateBlogPostOutputSerializer
 
+    @extend_schema(
+        operation_id="Update a blog post",
+        description="API for user's to update a specific blog post of their blog",
+    )
     def patch(self, request, pk):
         serializer = self.serializer_class(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -161,6 +178,8 @@ class BlogPostDetailAPI(APIView):
 
     @extend_schema(
         responses=serializers.BlogPostDetailOutputSerializer,
+        operation_id="Get a blog post",
+        description="API for viewing the details of a blog post",
     )
     def get(self, request, pk):
         blog_post = models.BlogPost.objects.get(pk=pk, author=request.user)
@@ -173,6 +192,9 @@ class BlogPostDetailAPI(APIView):
 class SoftDeleteBlogPostAPI(APIView):
     permission_classes = (IsAuthenticated,)
 
+    @extend_schema(
+        operation_id="Soft delete a blog post",
+    )
     def delete(self, request, pk):
         blog_post = models.BlogPost.objects.get(pk=pk, author=request.user)
         blog_post.post_type = "DE"
@@ -187,6 +209,7 @@ class GetBlogsOfUserAPI(APIView):
 
     @extend_schema(
         responses=serializers.GetBlogsOfUserOutputSerializer,
+        operation_id="List blogs of a user",
     )
     def get(self, request):
         blogs = models.Blog.objects.filter(blog_author=request.user).order_by(
@@ -211,6 +234,7 @@ class ListPublishedBlogPostsReadingModeAPI(APIView):
             OpenApiParameter("post_type", OpenApiTypes.STR),
         ],
         responses=serializers.ListPublishedBlogPostsReadingModeOutputSerializer,
+        operation_id="List published blog posts for a reader",
     )
     def get(self, request):
         filter_serializer = self.filter_serializer_class(data=request.query_params)
@@ -235,6 +259,7 @@ class BlogPostDetailReadingModeAPI(APIView):
 
     @extend_schema(
         responses=serializers.BlogPostDetailReadingModeOutputSerializer,
+        operation_id="Get the specific blog post for a reader",
     )
     def get(self, request, pk):
         blog_post = models.BlogPost.objects.get(pk=pk, post_type="PU")
@@ -250,6 +275,7 @@ class LikeOrRemoveLikeBlogPostAPI(APIView):
 
     @extend_schema(
         request=serializers.LikeOrRemoveLikeBlogPostInputSerializer,
+        operation_id="Like or unlike a blog post",
     )
     def post(self, request):
         input_serializer = self.input_serializer_class(data=request.data)
@@ -272,6 +298,7 @@ class ListBlogPostCommentsAPI(APIView):
         parameters=[
             OpenApiParameter("blog_post", OpenApiTypes.INT),
         ],
+        operation_id="List comments of a blog post",
     )
     def get(self, request):
         filter_serializer = self.filter_serializer_class(data=request.query_params)
@@ -298,6 +325,7 @@ class CreateBlogPostCommentAPI(APIView):
     @extend_schema(
         request=serializers.CreateBlogPostCommentInputSerializer,
         responses=serializers.CreateBlogPostCommentOutputSerializer,
+        operation_id="Create a blog post comment",
     )
     def post(self, request):
         input_serializer = self.input_serializer_class(data=request.data)
@@ -315,6 +343,9 @@ class CreateBlogPostCommentAPI(APIView):
 class DeleteBlogPostCommentAPI(APIView):
     permission_classes = (IsAuthenticated,)
 
+    @extend_schema(
+        operation_id="Delete a blog post comment",
+    )
     def delete(self, request, pk):
         comment = models.Comment.objects.get(pk=pk, commenter=request.user)
         comment.delete()
@@ -327,6 +358,9 @@ class UpdateBlogPostCommentAPI(APIView):
     serializer_class = serializers.UpdateBlogPostCommentSerializer
     output_serializer = serializers.UpdateBlogPostCommentOutputSerializer
 
+    @extend_schema(
+        operation_id="Update a blog post comment",
+    )
     def patch(self, request, pk):
         serializer = self.serializer_class(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -346,6 +380,7 @@ class GetBlogPostCommentAPI(APIView):
 
     @extend_schema(
         responses=serializers.GetBlogPostCommentOutputSerializer,
+        operation_id="Get a blog post comment",
     )
     def get(self, request, pk):
         try:
@@ -364,6 +399,7 @@ class LikeOrRemoveLikeCommentAPI(APIView):
 
     @extend_schema(
         request=serializers.LikeOrRemoveLikeCommentInputSerializer,
+        operation_id="Like or unlike a blog post comment",
     )
     def post(self, request):
         input_serializer = self.input_serializer_class(data=request.data)
@@ -382,6 +418,7 @@ class SubscribeToBlogAPI(APIView):
 
     @extend_schema(
         request=serializers.SubscribeToBlogInputSerializer,
+        operation_id="Subscribe to a blog",
     )
     def post(self, request):
         input_serializer = self.input_serializer_class(data=request.data)
@@ -397,6 +434,10 @@ class SubscribeToBlogAPI(APIView):
 class UnsubscribeToBlogAPI(APIView):
     permission_classes = (IsAuthenticated,)
 
+    @extend_schema(
+        request=serializers.SubscribeToBlogInputSerializer,
+        operation_id="Unsubscribe to a blog",
+    )
     def patch(self, request, pk):
         try:
             subscription = models.Subscription.objects.get(pk=pk)
@@ -415,6 +456,7 @@ class GetSubscriptionAPI(APIView):
 
     @extend_schema(
         responses=serializers.GetSubscriptionOutputSerializer,
+        operation_id="Get a subscription",
     )
     def get(self, request):
         try:
@@ -445,6 +487,7 @@ class FilterBlogPostsofBlogAPI(APIView):
         parameters=[
             OpenApiParameter("search_query", OpenApiTypes.STR),
         ],
+        operation_id="Search blog posts of a blog",
     )
     def get(self, request):
         filter_serializer = self.filter_serializer_class(data=request.query_params)
@@ -469,6 +512,7 @@ class GetLatestTenBlogPostsofBlogAPI(APIView):
 
     @extend_schema(
         responses=serializers.GetLatestTenBlogPostsofBlogOutputSerializer,
+        operation_id="Get latest ten blog posts of a blog",
     )
     def get(self, request, pk):
         try:
@@ -492,6 +536,7 @@ class GetProfileAPI(APIView):
 
     @extend_schema(
         responses=serializers.GetProfileOutputSerializer,
+        operation_id="Get a user's profile",
     )
     def get(self, request):
         try:
@@ -508,7 +553,6 @@ class GetProfileAPI(APIView):
             raise Http404("Something went wrong.")
 
 
-# Change the permission to allow any. change how filtering works instead of basing on request.user.
 class PostsTabAPI(APIView):
     permission_classes = (AllowAny,)
     filter_serializer = serializers.GetPostsTabInputSerializer
@@ -516,6 +560,7 @@ class PostsTabAPI(APIView):
 
     @extend_schema(
         responses=serializers.GetPostsTabOutputSerializer,
+        operation_id="Posts tab",
     )
     def get(self, request):
         try:
@@ -541,6 +586,7 @@ class CommentsTabAPI(APIView):
 
     @extend_schema(
         responses=serializers.GetCommentsTabOutputSerializer,
+        operation_id="Comments tab",
     )
     def get(self, request):
         try:
@@ -563,6 +609,9 @@ class LikesTabAPI(APIView):
     permission_classes = (AllowAny,)
     filter_serializer = serializers.GetLikesTabInputSerializer
 
+    @extend_schema(
+        operation_id="Likes tab",
+    )
     def get(self, request):
         try:
             filter_serializer = self.filter_serializer(data=request.query_params)
@@ -667,6 +716,7 @@ class ReadsTabAPI(APIView):
 
     @extend_schema(
         responses=serializers.GetReadsTabOutputSerializer,
+        operation_id="Reads tab",
     )
     def get(self, request):
         try:
@@ -695,6 +745,9 @@ class EditProfilePictureAPI(APIView):
     serializer_class = serializers.EditProfilePictureInputSerializer
     output_serializer = serializers.EditProfilePictureOutputSerializer
 
+    @extend_schema(
+        operation_id="Edit profile picture",
+    )
     def patch(self, request):
         serializer = self.serializer_class(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -713,6 +766,9 @@ class EditProfileBannerAPI(APIView):
     serializer_class = serializers.EditProfileBannerInputSerializer
     output_serializer = serializers.EditProfileBannerOutputSerializer
 
+    @extend_schema(
+        operation_id="Edit profile banner",
+    )
     def patch(self, request):
         serializer = self.serializer_class(data=request.data)
         serializer.is_valid(raise_exception=True)

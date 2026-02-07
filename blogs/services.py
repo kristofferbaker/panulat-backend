@@ -95,6 +95,7 @@ def create_blog_post_comment(data, user):
     return comment
 
 
+@transaction.atomic
 def update_blog_post_comment(data, pk, user):
     comment = Comment.objects.get(pk=pk)
     body = data.get("body")
@@ -139,6 +140,7 @@ def subscribe_to_blog(data, user):
         subscription.save()
 
 
+@transaction.atomic
 def edit_profile_picture(data, user):
     user_profile = UserProfile.objects.filter(user=user).first()
     new_profile_picture = data.get("profile_picture")
@@ -150,6 +152,7 @@ def edit_profile_picture(data, user):
     return user_profile
 
 
+@transaction.atomic
 def edit_profile_banner(data, user):
     user_profile = UserProfile.objects.filter(user=user).first()
     new_profile_banner = data.get("profile_banner")
