@@ -5,6 +5,7 @@ from .models import *
 @admin.register(Blog)
 class BlogAdmin(admin.ModelAdmin):
     list_display = (
+        "id",
         "blog_author",
         "blog_name",
         "blog_banner",

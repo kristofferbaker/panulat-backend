@@ -2,6 +2,7 @@ from rest_framework import serializers
 from .models import *
 from drf_extra_fields.fields import Base64ImageField
 from accounts.models import UserProfile, CustomUser
+from datetime import datetime
 
 
 class GlobalExploreFilterSerializer(serializers.Serializer):
@@ -27,6 +28,7 @@ class ListLatestPostsOfSubscribedToBlogsOutputSerializer(serializers.ModelSerial
     blog_logo = serializers.SerializerMethodField()
     blog_name = serializers.SerializerMethodField()
     author_username = serializers.SerializerMethodField()
+    created_at = serializers.SerializerMethodField()
 
     class Meta:
         model = BlogPost
@@ -40,6 +42,29 @@ class ListLatestPostsOfSubscribedToBlogsOutputSerializer(serializers.ModelSerial
 
     def get_author_username(self, obj):
         return obj.blog.blog_author.username
+
+    def get_created_at(self, obj):
+        month_to_string = {
+            "01": "JAN",
+            "02": "FEB",
+            "03": "MAR",
+            "04": "APR",
+            "05": "MAY",
+            "06": "JUN",
+            "07": "JUL",
+            "08": "AUG",
+            "09": "SEPT",
+            "10": "OCT",
+            "11": "NOV",
+            "12": "DEC",
+        }
+
+        created_at = obj.created_at
+        year = datetime.strftime(created_at, "%Y")
+        month = month_to_string[datetime.strftime(created_at, "%m")]
+        day = datetime.strftime(created_at, "%d")
+
+        return f"{day} {month} {year}"
 
 
 class StatsOverviewFilterSerializer(serializers.Serializer):
